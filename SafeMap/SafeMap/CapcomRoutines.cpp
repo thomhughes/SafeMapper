@@ -78,6 +78,36 @@ size_t CapcomRoutines::get_header_size(uintptr_t base)
 	return header_size;
 }
 
+uintptr_t CapcomRoutines::get_export(uintptr_t base, uint16_t ordinal)
+{
+	NON_PAGED_DATA static uintptr_t address = { 0 };
+	NON_PAGED_DATA static uintptr_t sBase = { 0 };
+	NON_PAGED_DATA static uint16_t sOrdinal = { 0 };
+
+	CpCtx->ExecuteInKernel(NON_PAGED_LAMBDA()
+	{
+		const auto dos_header = (PIMAGE_DOS_HEADER)sBase;
+		if (dos_header->e_magic != IMAGE_DOS_SIGNATURE)
+			return;
+		const auto nt_headers = (PIMAGE_NT_HEADERS64)(sBase + dos_header->e_lfanew);
+		if (nt_headers->Signature != IMAGE_NT_SIGNATURE)
+			return;
+		if (nt_headers->OptionalHeader.Magic != IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+			return;
+		const auto export_ptr = (PIMAGE_EXPORT_DIRECTORY)(nt_headers->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress + sBase);
+		auto address_of_funcs = (PULONG)(export_ptr->AddressOfFunctions + sBase);
+		for (ULONG i = 0; i < export_ptr->NumberOfFunctions; ++i)
+		{
+			if (export_ptr->Base + (uint16_t)i == sOrdinal) {
+				address = address_of_funcs[i] + sBase;
+				return;
+			}
+		}
+	});
+
+	return address;
+}
+
 uintptr_t CapcomRoutines::get_export(uintptr_t base, const char* name)
 {
 	NON_PAGED_DATA static auto RtlFindExportedRoutineByName = KrCtx->GetProcAddress<>("RtlFindExportedRoutineByName");
@@ -117,11 +147,12 @@ uintptr_t CapcomRoutines::allocate_pool(size_t size, uint16_t pooltag, POOL_TYPE
 	}
 	NON_PAGED_DATA static auto ExAllocatePoolWithTag = KrCtx->GetProcAddress<>("ExAllocatePoolWithTag");
 
+	printf("ExAllocatePoolWithTag: %llx\n", ExAllocatePoolWithTag);
 	if (ExAllocatePoolWithTag) {
 
 		CpCtx->ExecuteInKernel(NON_PAGED_LAMBDA()
 		{
-			uint64_t storeAddy = Khk_CallPassive(ExAllocatePoolWithTag, sPoolType, sSize, sPoolTag);
+			uint64_t storeAddy = ExAllocatePoolWithTag(sPoolType, sSize, sPoolTag);
 			address = storeAddy;
 		});
 	}

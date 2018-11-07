@@ -30,6 +30,7 @@ class CapcomRoutines {
 public:
 	CapcomRoutines(KernelContext* KrCtx, CapcomContext* CpCtx) : KrCtx(KrCtx), CpCtx(CpCtx) {};
 	uintptr_t get_kernel_module(const std::string_view kmodule);
+	uintptr_t get_export(uintptr_t base, uint16_t ordinal);
 	uintptr_t get_export(uintptr_t base, const char* name);
 	size_t get_header_size(uintptr_t base);
 	uintptr_t allocate_pool(size_t size, uint16_t pooltag, POOL_TYPE pool_type, const bool page_align, size_t* out_size = nullptr);
