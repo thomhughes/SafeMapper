@@ -1,6 +1,19 @@
 #include "pch.h"
 #include "MapImage.h"
 
+MapImage::MapImage(std::vector<uint8_t> image) : m_image(std::move(image))
+{
+	m_dos_header = reinterpret_cast<PIMAGE_DOS_HEADER>(m_image.data());
+	if (!(m_dos_header->e_magic == IMAGE_DOS_SIGNATURE))
+		exit(0xFA10);
+	m_nt_headers = reinterpret_cast<PIMAGE_NT_HEADERS64>((uintptr_t)m_dos_header + m_dos_header->e_lfanew);
+	if (!(m_nt_headers->Signature == IMAGE_NT_SIGNATURE))
+		exit(0xFA10);
+	if (!(m_nt_headers->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC))
+		exit(0xFA10);
+	m_section_header = reinterpret_cast<IMAGE_SECTION_HEADER*>((uintptr_t)(&m_nt_headers->OptionalHeader) + m_nt_headers->FileHeader.SizeOfOptionalHeader);
+}
+
 size_t MapImage::size() const
 {
 	return m_nt_headers->OptionalHeader.SizeOfImage;
