@@ -161,6 +161,7 @@ void MapImage::fix_imports(const std::function<uintptr_t(std::string_view)> get_
 
 		const auto module_name = get_rva<char>(import_descriptors->Name);
 		const auto module_base = get_module(module_name);
+		printf("module_name: %s\n", module_name);
 		assert(module_base != 0);
 #ifdef _DEBUG
 		printf("processing module: %s [0x%I64X]\n", module_name, module_base);

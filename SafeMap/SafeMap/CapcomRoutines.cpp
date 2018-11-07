@@ -31,15 +31,14 @@ uintptr_t CapcomRoutines::get_kernel_module(const std::string_view kmodule)
 	unsigned long required = 0;
 
 
-	while ((status = NtQuerySystemInformation(SystemModuleInformation, data.data(), (ULONG)data.size(), &required)) == STATUS_INFO_LENGTH_MISMATCH) {
+	while ((status = NtQuerySystemInformation(11, data.data(), (ULONG)data.size(), &required)) == STATUS_INFO_LENGTH_MISMATCH) {
 		data.resize(required);
 	}
 
-	if (status == STATUS_SUCCESS)
+	if (status != STATUS_SUCCESS)
 	{
 		return 0;
 	}
-
 	const auto modules = reinterpret_cast<PRTL_PROCESS_MODULES>(data.data());
 	for (unsigned i = 0; i < modules->NumberOfModules; ++i)
 	{
@@ -57,6 +56,8 @@ uintptr_t CapcomRoutines::get_kernel_module(const std::string_view kmodule)
 		if (kmodule == base_name)
 			return reinterpret_cast<uintptr_t>(driver.ImageBase);
 	}
+
+	return 0;
 }
 
 size_t CapcomRoutines::get_header_size(uintptr_t base)
@@ -118,14 +119,11 @@ uintptr_t CapcomRoutines::get_export(uintptr_t base, const char* name)
 	NON_PAGED_DATA static uintptr_t address = 0;
 
 	if (RtlFindExportedRoutineByName) {
-		NON_PAGED_DATA static uintptr_t address = { 0 };
-
 		CpCtx->ExecuteInKernel(NON_PAGED_LAMBDA()
 		{
-			uint64_t storeAddy = Khk_CallPassive(RtlFindExportedRoutineByName, sBase, sName);
+			uint64_t storeAddy = RtlFindExportedRoutineByName(sBase, sName);
 			address = storeAddy;
 		});
-
 	}
 
 	return address;
