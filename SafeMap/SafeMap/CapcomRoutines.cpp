@@ -145,7 +145,6 @@ uintptr_t CapcomRoutines::allocate_pool(size_t size, uint16_t pooltag, POOL_TYPE
 	}
 	NON_PAGED_DATA static auto ExAllocatePoolWithTag = KrCtx->GetProcAddress<>("ExAllocatePoolWithTag");
 
-	printf("ExAllocatePoolWithTag: %llx\n", ExAllocatePoolWithTag);
 	if (ExAllocatePoolWithTag) {
 
 		CpCtx->ExecuteInKernel(NON_PAGED_LAMBDA()
