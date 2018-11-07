@@ -216,7 +216,8 @@ static void Khu_Init( CapcomContext* CpCtx, KernelContext* KrCtx )
 	VirtualLock( Kh_ShellCodePage, 0x1000 );
 
 	CpCtx->ExecuteInKernel( Khk_AllocatePassiveStub );
-	assert( Khk_PassiveCallStub );
+	if (!Khk_PassiveCallStub)
+		exit(-1);
 
 	VirtualFree( Kh_ShellCodePage, 0, MEM_RELEASE );
 }

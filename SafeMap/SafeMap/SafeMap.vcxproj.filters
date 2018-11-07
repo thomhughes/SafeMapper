@@ -42,12 +42,18 @@
     <ClInclude Include="NtDefines.h">
       <Filter>Header Files\Capcom</Filter>
     </ClInclude>
+    <ClInclude Include="CapcomRoutines.h">
+      <Filter>Header Files\Capcom</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="SafeMap.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CapcomRoutines.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
