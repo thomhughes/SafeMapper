@@ -5,12 +5,12 @@ MapImage::MapImage(std::vector<uint8_t> image) : m_image(std::move(image))
 {
 	m_dos_header = reinterpret_cast<PIMAGE_DOS_HEADER>(m_image.data());
 	if (!(m_dos_header->e_magic == IMAGE_DOS_SIGNATURE))
-		exit(0xFA10);
+		exit(0);
 	m_nt_headers = reinterpret_cast<PIMAGE_NT_HEADERS64>((uintptr_t)m_dos_header + m_dos_header->e_lfanew);
 	if (!(m_nt_headers->Signature == IMAGE_NT_SIGNATURE))
-		exit(0xFA10);
+		exit(0);
 	if (!(m_nt_headers->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC))
-		exit(0xFA10);
+		exit(0);
 	m_section_header = reinterpret_cast<IMAGE_SECTION_HEADER*>((uintptr_t)(&m_nt_headers->OptionalHeader) + m_nt_headers->FileHeader.SizeOfOptionalHeader);
 }
 
@@ -80,7 +80,6 @@ bool MapImage::process_relocation(uintptr_t image_base_delta, uint16_t data, uin
 	}
 	default:
 	{
-		throw std::runtime_error("gay relocation!");
 		return false;
 	}
 
@@ -109,7 +108,8 @@ void MapImage::relocate(uintptr_t base) const
 	}
 
 
-	assert(relocation_directory != nullptr);
+	if (relocation_directory == 0)
+		return;
 
 	void * relocation_end = reinterpret_cast<uint8_t*>(relocation_directory) + relocation_size;
 
@@ -161,8 +161,9 @@ void MapImage::fix_imports(const std::function<uintptr_t(std::string_view)> get_
 
 		const auto module_name = get_rva<char>(import_descriptors->Name);
 		const auto module_base = get_module(module_name);
-		printf("module_name: %s\n", module_name);
-		assert(module_base != 0);
+
+		if (module_base == 0)
+			return;
 #ifdef _DEBUG
 		printf("processing module: %s [0x%I64X]\n", module_name, module_base);
 #endif
@@ -178,8 +179,8 @@ void MapImage::fix_imports(const std::function<uintptr_t(std::string_view)> get_
 
 		auto image_func_data = get_rva<IMAGE_THUNK_DATA64>(import_descriptors->FirstThunk);
 
-		assert(image_thunk_data != nullptr);
-		assert(image_func_data != nullptr);
+		if (image_thunk_data == 0 || image_func_data == 0)
+			return;
 
 		for (; image_thunk_data->u1.AddressOfData; image_thunk_data++, image_func_data++)
 		{
@@ -204,14 +205,14 @@ void MapImage::fix_imports(const std::function<uintptr_t(std::string_view)> get_
 #endif
 			}
 
-			assert(function_address != 0);
+			if (function_address == 0) // We don't really handle this properly whatsover but it's better than having capcom stuck open...
+				return;
 
 			image_func_data->u1.Function = function_address;
 		}
 	}
 
 }
-
 
 void MapImage::add_cookie(uintptr_t base)
 {
