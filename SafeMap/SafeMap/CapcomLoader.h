@@ -36,7 +36,6 @@ struct CapcomContext
 	{
 		this->Destination = ( uint64_t ) Destination;
 
-		// STOP OPTIMIZING MY FUCKING VARIABLES AWAY DUMB CUNT
 		if ( __rdtsc() == 0 )
 			Destination( 0 );
 
