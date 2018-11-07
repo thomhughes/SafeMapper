@@ -45,6 +45,9 @@
     <ClInclude Include="CapcomRoutines.h">
       <Filter>Header Files\Capcom</Filter>
     </ClInclude>
+    <ClInclude Include="MapImage.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -54,6 +57,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="CapcomRoutines.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MapImage.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

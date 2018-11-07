@@ -23,7 +23,7 @@ typedef struct _RTL_PROCESS_MODULES
 	RTL_PROCESS_MODULE_INFORMATION Modules[1];
 } RTL_PROCESS_MODULES, *PRTL_PROCESS_MODULES;
 
-uintptr_t get_kernel_module(const std::string_view kmodule)
+uintptr_t CapcomRoutines::get_kernel_module(const std::string_view kmodule)
 {
 	NTSTATUS status = 0x0;
 	ULONG bytes = 0;
@@ -59,29 +59,26 @@ uintptr_t get_kernel_module(const std::string_view kmodule)
 	}
 }
 
-uintptr_t get_system_routine_internal(const std::wstring& name)
+size_t CapcomRoutines::get_header_size(uintptr_t base)
 {
-	NON_PAGED_DATA static uintptr_t address = { 0 };
+	NON_PAGED_DATA static uintptr_t header_size = { 0 };
+	NON_PAGED_DATA static uintptr_t sBase = base;
 
-	NON_PAGED_DATA static UNICODE_STRING unicode_name = { 0 };
-	unicode_name.Buffer = (wchar_t*)name.c_str();
-	unicode_name.Length = (name.size()) * 2;
-	unicode_name.MaximumLength = (name.size() + 1) * 2;
+	CpCtx->ExecuteInKernel(NON_PAGED_LAMBDA()
+	{
+		const auto dos_header = (PIMAGE_DOS_HEADER)sBase;
+		if (dos_header->e_magic != IMAGE_DOS_SIGNATURE)
+			return;
+		const auto nt_headers = (PIMAGE_NT_HEADERS64)sBase;
+		if (nt_headers->Signature != IMAGE_NT_SIGNATURE || nt_headers->OptionalHeader.Magic != IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+			return;
+		header_size = nt_headers->OptionalHeader.SizeOfHeaders;
+	});
 
-	NON_PAGED_DATA static auto mm_get_system_routine = KrCtx->GetProcAddress<>("MmGetSystemRoutineAddress");
-
-	if (mm_get_system_routine) {
-		CpCtx->ExecuteInKernel(NON_PAGED_LAMBDA()
-		{
-			uint64_t addy = Khk_CallPassive(mm_get_system_routine, &unicode_name);
-			address = addy;
-		});
-	}
-
-	return address;
+	return header_size;
 }
 
-uintptr_t get_export(uintptr_t base, const char* name)
+uintptr_t CapcomRoutines::get_export(uintptr_t base, const char* name)
 {
 	NON_PAGED_DATA static auto RtlFindExportedRoutineByName = KrCtx->GetProcAddress<>("RtlFindExportedRoutineByName");
 
@@ -102,4 +99,39 @@ uintptr_t get_export(uintptr_t base, const char* name)
 	}
 
 	return address;
+}
+
+uintptr_t CapcomRoutines::allocate_pool(size_t size, uint16_t pooltag, POOL_TYPE pool_type, const bool page_align, size_t* out_size)
+{
+	constexpr auto page_size = 0x1000u;
+
+	NON_PAGED_DATA static uintptr_t address = { 0 };
+	NON_PAGED_DATA static uintptr_t sPoolType = pool_type;
+	NON_PAGED_DATA static size_t sSize = size;
+	NON_PAGED_DATA static uint16_t sPoolTag = pooltag;
+
+	if (page_align && size % page_size != 0)
+	{
+		auto pages = size / page_size;
+		size = page_size * ++pages;
+	}
+	NON_PAGED_DATA static auto ExAllocatePoolWithTag = KrCtx->GetProcAddress<>("ExAllocatePoolWithTag");
+
+	if (ExAllocatePoolWithTag) {
+
+		CpCtx->ExecuteInKernel(NON_PAGED_LAMBDA()
+		{
+			uint64_t storeAddy = Khk_CallPassive(ExAllocatePoolWithTag, sPoolType, sSize, sPoolTag);
+			address = storeAddy;
+		});
+	}
+
+	if (address && out_size != nullptr)
+		*out_size = size;
+
+	return address;
+}
+
+uintptr_t CapcomRoutines::allocate_pool(size_t size, POOL_TYPE pool_type, const bool page_align, size_t* out_size) {
+	return allocate_pool(size, 0, pool_type, page_align, out_size);
 }

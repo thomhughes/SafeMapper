@@ -159,11 +159,13 @@
     <ClInclude Include="KernelHelper.h" />
     <ClInclude Include="KernelRoutines.h" />
     <ClInclude Include="LockedMemory.h" />
+    <ClInclude Include="MapImage.h" />
     <ClInclude Include="NtDefines.h" />
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CapcomRoutines.cpp" />
+    <ClCompile Include="MapImage.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
